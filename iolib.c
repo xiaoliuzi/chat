@@ -2,14 +2,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define MAX_LINE 100
+
 ssize_t my_read(int fd, void *buffer, size_t length)
 {
 	ssize_t done = length;
+	char buf[MAX_LINE];
 	while (done > 0) {
 		done = read(fd, buf, length);
 		
 		if (done != length) {
-			if (errno == EINTER) {
+			if (errno == EINTR) {
 				done = length;
 
 			}
@@ -25,9 +28,10 @@ ssize_t my_read(int fd, void *buffer, size_t length)
 	return done;
 }
 
-ssize_t my_write(int fd, void *buffer, sieze_t length)
+ssize_t my_write(int fd, void *buffer, size_t length)
 {
 	ssize_t done = length;
+	char buf[MAX_LINE];
 	while(done > 0){
 		done = write(fd, buf , length);
 		if (done != length){

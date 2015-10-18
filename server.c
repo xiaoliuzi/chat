@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include "iolib.h"
+
 #define MAX_LINE 100
 
 
@@ -38,19 +40,45 @@ int main(void)
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons(port);
         
-	l_fd = socket(AF_INET, SOCK_STREAM, 0);
-	bind(l_fd, (struct sockaddr*)&sin, sizeof(sin));
-	listen(l_fd, 10);
+	if( (l_fd = socket(AF_INET, SOCK_STREAM, 0))== -1 ) {
+		perror("fail to create socket");
+		exit(1);
+
+	}
+	if (bind(l_fd, (struct sockaddr*)&sin, sizeof(sin)) == -1){
+		perror("fail to bind");
+		exit(1);
+	} 
+	if ( listen(l_fd, 10) ) {
+		perror("fail to listen");
+		exit(1);
+	}
 	printf("waiting ...\n");
 	while(1) {
-		c_fd = accept(l_fd, (struct sockaddr*)&cin, &len);
-		n = read(c_fd, buf, MAX_LINE);
+		if (c_fd = accept(l_fd, (struct sockaddr*)&cin, &len) == -1) {
+			perror("fail to accept");
+			exit(1);
+		}
+		if ((n=my_read(c_fd, buf, MAX_LINE)) == -1) {
+			perror("fail to read");
+			exit(1);
+		}
+		else if (n == 0) {
+			printf("the connect has been close\n");
+			close(c_fd);
+			continue;
+		}
 		inet_ntop(AF_INET, &cin.sin_addr, addr_p, sizeof(addr_p));
 		printf("client IP is %s, port is %d\n", addr_p, ntohs(sin.sin_port));
  		printf("content is :%s\n",buf );	
 		my_fun(buf);
-		write(c_fd, buf, n);
-		close(c_fd);
+		if ( (n=write(c_fd, buf, n)) == -1) {
+			exit(1);
+		}
+		if (close(c_fd) == -1) {
+			perror("fail to close");
+			exit(1);
+		}
 	} 
 	
 	if (close(l_fd) == -1) {
